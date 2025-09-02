@@ -154,7 +154,6 @@ class NotificationBase(BaseModel):
 
 
 class NotificationCreate(NotificationBase):
-    user_id: int
     discount_id: Optional[int] = None
 
 

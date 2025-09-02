@@ -72,7 +72,7 @@ def get_current_user(request: Request, db: Session = Depends(database.get_db)) -
             credentials: HTTPAuthorizationCredentials = security(request)
             if credentials:
                 token = credentials.credentials
-        except:
+        except (HTTPException, JWTError):
             pass
 
     if not token:

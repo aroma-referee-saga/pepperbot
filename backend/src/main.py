@@ -1,15 +1,20 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import List
 import uvicorn
 import sys
 import os
+import logging
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from config.settings import settings
 
 from . import models, schemas, auth, database
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create database tables
 database.create_tables()
@@ -69,7 +74,7 @@ async def login(response: Response, user_credentials: schemas.UserLogin, db: Ses
         value=f"Bearer {access_token}",
         httponly=True,
         max_age=settings.access_token_expire_minutes * 60,
-        expires=settings.access_token_expire_minutes * 60,
+        expires=datetime.utcnow() + timedelta(seconds=settings.access_token_expire_minutes * 60),
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
@@ -355,7 +360,6 @@ async def get_discounts(
 @app.post("/discounts", response_model=schemas.Discount)
 async def create_discount(
     discount: schemas.DiscountCreate,
-    current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(database.get_db)
 ):
     db_discount = models.Discount(**discount.dict())
@@ -433,7 +437,7 @@ async def create_notification(
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(database.get_db)
 ):
-    db_notification = models.Notification(**notification.dict())
+    db_notification = models.Notification(**notification.dict(), user_id=current_user.id)
     db.add(db_notification)
     db.commit()
     db.refresh(db_notification)
