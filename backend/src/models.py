@@ -20,6 +20,7 @@ class User(Base):
     shopping_lists = relationship("ShoppingList", back_populates="owner")
     filters = relationship("Filter", back_populates="user")
     notifications = relationship("Notification", back_populates="user")
+    telegram_users = relationship("TelegramUser", back_populates="user")
 
 
 class ShoppingList(Base):
@@ -98,3 +99,17 @@ class Notification(Base):
     # Relationships
     user = relationship("User", back_populates="notifications")
     discount = relationship("Discount")
+
+
+class TelegramUser(Base):
+    __tablename__ = "telegram_users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_chat_id = Column(String, unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", back_populates="telegram_users")
+

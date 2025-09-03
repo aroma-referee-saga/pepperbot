@@ -10,6 +10,8 @@ import logging
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from config.settings import settings
 
+from . import models, schemas, auth, database, scraper, bot
+
 from . import models, schemas, auth, database
 
 # Configure logging
@@ -18,6 +20,21 @@ logger = logging.getLogger(__name__)
 
 # Create database tables
 database.create_tables()
+# Create database tables
+database.create_tables()
+
+# Start the scraper scheduler
+scraper.start_scraper()
+
+# Start the Telegram bot and notification worker
+if settings.telegram_bot_token:
+    import asyncio
+    loop = asyncio.get_event_loop()
+    loop.create_task(bot.start_bot())
+    loop.create_task(bot.start_notification_worker())
+    logger.info("Telegram bot and notification worker started")
+else:
+    logger.warning("Telegram bot token not configured")
 
 app = FastAPI(title="PepperBot API", version="1.0.0")
 
@@ -29,6 +46,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Docker health checks"""
+    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+
+
 
 
 @app.post("/auth/register", response_model=schemas.User)
@@ -512,7 +536,82 @@ async def telegram_webhook(update: schemas.TelegramUpdate):
 
         return {"status": "ok", "message": "Update received"}
 
-    return {"status": "ok"}
+
+# Telegram user management endpoints
+@app.post("/telegram/link", response_model=schemas.TelegramUser)
+async def link_telegram_user(
+    link_data: schemas.TelegramUserLink,
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(database.get_db)
+):
+    """Link Telegram chat ID to current user"""
+    # This would typically be called from the bot when user provides credentials
+    # For now, we'll create the link directly
+    telegram_user = models.TelegramUser(
+        telegram_chat_id=str(link_data.username),  # Using username as placeholder for chat_id
+        user_id=current_user.id
+    )
+    db.add(telegram_user)
+    db.commit()
+    db.refresh(telegram_user)
+    return telegram_user
+
+
+@app.get("/telegram/users", response_model=List[schemas.TelegramUser])
+async def get_telegram_users(
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(database.get_db)
+):
+    """Get linked Telegram users for current user"""
+    telegram_users = db.query(models.TelegramUser).filter(
+        models.TelegramUser.user_id == current_user.id
+    ).all()
+    return telegram_users
+
+
+@app.delete("/telegram/users/{telegram_user_id}")
+async def unlink_telegram_user(
+    telegram_user_id: int,
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(database.get_db)
+):
+    """Unlink Telegram user"""
+    telegram_user = db.query(models.TelegramUser).filter(
+        models.TelegramUser.id == telegram_user_id,
+        models.TelegramUser.user_id == current_user.id
+    ).first()
+
+    if not telegram_user:
+        raise HTTPException(status_code=404, detail="Telegram user link not found")
+
+    db.delete(telegram_user)
+    db.commit()
+    return {"message": "Telegram user unlinked successfully"}
+# Scraper endpoints
+@app.post("/scraper/trigger")
+async def trigger_scraper():
+    """Manually trigger the scraper"""
+    try:
+        await scraper.manual_scrape()
+        return {"message": "Scraper triggered successfully"}
+    except Exception as e:
+        logger.error(f"Error triggering scraper: {e}")
+        raise HTTPException(status_code=500, detail="Failed to trigger scraper")
+
+
+@app.get("/scraper/status")
+async def get_scraper_status():
+    """Get scraper status"""
+    return {
+        "scheduler_running": scraper.scheduler.running if hasattr(scraper, 'scheduler') else False,
+        "last_run": getattr(scraper, 'last_run', None)
+    }
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    
 
 
 if __name__ == "__main__":

@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (optional alternative to SQLite)
+  # db:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_DB: pepperbot
+  #     POSTGRES_USER: pepperbot
+  #     POSTGRES_PASSWORD: pepperbot_password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U pepperbot"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: unless-stopped
+
+  # Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////app/data/pepperbot.db
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - sqlite_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - pepperbot_network
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - pepperbot_network
+
+  # Scraper Service
+  scraper:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "-c", "from src.scraper import start_scraper; import asyncio; asyncio.run(start_scraper())"]
+    environment:
+      - DATABASE_URL=sqlite:////app/data/pepperbot.db
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+    volumes:
+      - sqlite_data:/app/data
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - pepperbot_network
+
+  # Telegram Bot Service
+  bot:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "-c", "from src.bot import start_bot, start_notification_worker; import asyncio; asyncio.run(start_notification_worker()); asyncio.run(start_bot())"]
+    environment:
+      - DATABASE_URL=sqlite:////app/data/pepperbot.db
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - sqlite_data:/app/data
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - pepperbot_network
+
+volumes:
+  sqlite_data:
+    driver: local
+  # postgres_data:
+  #   driver: local
+
+networks:
+  pepperbot_network:
+    driver: bridge

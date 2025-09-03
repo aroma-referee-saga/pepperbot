@@ -185,6 +185,31 @@ class TelegramUpdate(BaseModel):
     callback_query: Optional[dict] = None
 
 
+# Telegram User schemas
+class TelegramUserBase(BaseModel):
+    telegram_chat_id: str
+    user_id: int
+    is_active: bool = True
+
+
+class TelegramUserCreate(BaseModel):
+    telegram_chat_id: str
+    user_id: int
+
+
+class TelegramUser(TelegramUserBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TelegramUserLink(BaseModel):
+    username: str
+    password: str
+
+
 # Response schemas
 class MessageResponse(BaseModel):
     message: str
