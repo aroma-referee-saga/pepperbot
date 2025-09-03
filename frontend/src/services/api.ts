@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AxiosInstance, AxiosResponse } from 'axios';
+import type { AxiosInstance } from 'axios';
 
 // API Base URL - adjust if your backend is running on a different port
 const API_BASE_URL = 'http://localhost:8000';

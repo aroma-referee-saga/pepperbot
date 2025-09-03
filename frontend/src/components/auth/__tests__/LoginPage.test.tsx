@@ -11,6 +11,7 @@ const mockAuthContextValue = {
   login: mockLogin,
   register: vi.fn(),
   logout: vi.fn(),
+  checkAuth: vi.fn(),
   isLoading: false,
   isAuthenticated: false,
 };
@@ -110,7 +111,7 @@ describe('LoginPage', () => {
     const submitButton = screen.getByRole('button', { name: /sign in/i });
 
     fireEvent.change(usernameInput, { target: { value: 'testuser' } });
-    fireEvent.change(passwordInput, { target: { value: 'wrongpass' } });
+    fireEvent.change(passwordInput, { target: { value: 'testpass' } });
     fireEvent.click(submitButton);
 
     await waitFor(() => {

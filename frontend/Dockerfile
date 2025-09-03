@@ -7,13 +7,13 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including dev dependencies for building)
+RUN npm install --prefer-offline --no-audit && npm install --save-dev @tailwindcss/postcss
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application with production optimizations
 RUN npm run build
 
 # Production stage

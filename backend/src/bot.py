@@ -241,7 +241,7 @@ First, please /login to link your account.
             await state.clear()
 
             # Check if already logged in
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, message.chat.id)
                 if user:
                     await message.reply(f"✅ Already logged in as {user.username}")
@@ -265,7 +265,7 @@ First, please /login to link your account.
             password = message.text.strip()
             data = await state.get_data()
 
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = auth.authenticate_user(db, data['username'], password)
                 if user:
                     link_telegram_user(db, message.chat.id, user)
@@ -277,7 +277,7 @@ First, please /login to link your account.
         @dp.message(Command("filters"))
         async def cmd_filters(message: types.Message):
             """Handle /filters command"""
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, message.chat.id)
                 if not user:
                     await message.reply("❌ Please /login first")
@@ -315,7 +315,7 @@ First, please /login to link your account.
         @dp.message(Command("addfilter"))
         async def cmd_addfilter(message: types.Message, state: FSMContext):
             """Handle /addfilter command"""
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, message.chat.id)
                 if not user:
                     await message.reply("❌ Please /login first")
@@ -360,7 +360,7 @@ Combined criteria:
                 # Validate JSON
                 json.loads(criteria_text)
 
-                async with database.get_db() as db:
+                with database.get_db() as db:
                     user = get_user_by_chat_id(db, message.chat.id)
                     if user:
                         new_filter = models.Filter(
@@ -384,7 +384,7 @@ Combined criteria:
         @dp.message(Command("lists"))
         async def cmd_lists(message: types.Message):
             """Handle /lists command"""
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, message.chat.id)
                 if not user:
                     await message.reply("❌ Please /login first")
@@ -429,7 +429,7 @@ Combined criteria:
         @dp.message(Command("createlist"))
         async def cmd_createlist(message: types.Message, state: FSMContext):
             """Handle /createlist command"""
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, message.chat.id)
                 if not user:
                     await message.reply("❌ Please /login first")
@@ -443,7 +443,7 @@ Combined criteria:
             """Process shopping list name input"""
             list_name = message.text.strip()
 
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, message.chat.id)
                 if user:
                     new_list = models.ShoppingList(
@@ -490,7 +490,7 @@ For support, contact the administrators.
             """Handle filter toggle"""
             filter_id = int(callback_query.data.split(":")[1])
 
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, callback_query.message.chat.id)
                 if not user:
                     await callback_query.answer("Please login first")
@@ -518,7 +518,7 @@ For support, contact the administrators.
             """Handle view shopping list"""
             list_id = int(callback_query.data.split(":")[1])
 
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, callback_query.message.chat.id)
                 if not user:
                     await callback_query.answer("Please login first")
@@ -572,7 +572,7 @@ For support, contact the administrators.
             """Handle item completion"""
             item_id = int(callback_query.data.split(":")[1])
 
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, callback_query.message.chat.id)
                 if not user:
                     await callback_query.answer("Please login first")
@@ -598,7 +598,7 @@ For support, contact the administrators.
             list_id = int(parts[1])
             discount_id = int(parts[2])
 
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 user = get_user_by_chat_id(db, callback_query.message.chat.id)
                 if not user:
                     await callback_query.answer("Please login first")
@@ -679,7 +679,7 @@ async def notification_worker():
     """Background worker for processing discount notifications"""
     while True:
         try:
-            async with database.get_db() as db:
+            with database.get_db() as db:
                 if bot:  # Only process if bot is configured
                     await process_discount_notifications(db)
             await asyncio.sleep(300)  # Check every 5 minutes

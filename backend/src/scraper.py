@@ -207,7 +207,7 @@ scraper = PepperScraper()
 # Scheduler setup
 scheduler = AsyncIOScheduler()
 
-def start_scraper():
+async def start_scraper():
     """Start the periodic scraper"""
     # Add job to run every 30 minutes
     scheduler.add_job(
