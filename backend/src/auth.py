@@ -63,13 +63,13 @@ def get_current_user_from_token(token: str, db: Session) -> models.User:
     return user
 
 
-def get_current_user(request: Request, db: Session = Depends(database.get_db)) -> models.User:
+async def get_current_user(request: Request, db: Session = Depends(database.get_db)) -> models.User:
     # Try to get token from cookie first
     token = request.cookies.get("access_token")
     if not token:
         # Fallback to Authorization header
         try:
-            credentials: HTTPAuthorizationCredentials = security(request)
+            credentials: HTTPAuthorizationCredentials = await security(request)
             if credentials:
                 token = credentials.credentials
         except (HTTPException, JWTError):

@@ -7,12 +7,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=sqlite:////app/data/pepperbot.db
+      - DATABASE_URL=postgresql://pepperbot:pepperbot_prod_password_2024@db:5432/pepperbot
       - SECRET_KEY=${SECRET_KEY}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - ENVIRONMENT=production
     volumes:
-      - sqlite_data:/app/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
       interval: 30s
@@ -67,11 +67,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=sqlite:////app/data/pepperbot.db
+      - DATABASE_URL=postgresql://pepperbot:pepperbot_prod_password_2024@db:5432/pepperbot
       - SECRET_KEY=${SECRET_KEY}
       - ENVIRONMENT=production
     volumes:
-      - sqlite_data:/app/data
+      - postgres_data:/var/lib/postgresql/data
     depends_on:
       backend:
         condition: service_healthy
@@ -86,12 +86,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - DATABASE_URL=sqlite:////app/data/pepperbot.db
+      - DATABASE_URL=postgresql://pepperbot:pepperbot_prod_password_2024@db:5432/pepperbot
       - SECRET_KEY=${SECRET_KEY}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - ENVIRONMENT=production
     volumes:
-      - sqlite_data:/app/data
+      - postgres_data:/var/lib/postgresql/data
     depends_on:
       backend:
         condition: service_healthy
@@ -101,8 +101,6 @@ services:
     command: ["python", "-c", "from src.bot import start_bot, start_notification_worker; import asyncio; asyncio.run(start_notification_worker()); asyncio.run(start_bot())"]
 
 volumes:
-  sqlite_data:
-    driver: local
   postgres_data:
     driver: local
 
