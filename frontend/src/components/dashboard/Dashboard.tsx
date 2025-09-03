@@ -69,10 +69,11 @@ const Dashboard: React.FC = () => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
+    }).format(price);
+  };
+
   const handleListCreated = () => {
     fetchShoppingLists(); // Refresh the shopping lists
-  };
-    }).format(price);
   };
 
   return (
